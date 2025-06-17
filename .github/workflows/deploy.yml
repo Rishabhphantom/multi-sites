@@ -35,28 +35,29 @@ jobs:
       - name: Determine Which Site Changed
         id: changed-site
         run: |
-          CHANGED_DIRS=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E '^sites/' | cut -d'/' -f2 | sort | uniq)
+          # Get list of changed site folders
+          CHANGED_DIRS=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E '^AppleWebsite-Clone|^microsoft-homepage-clone' | cut -d'/' -f1 | sort | uniq)
           echo "changed_dirs=$CHANGED_DIRS" >> $GITHUB_ENV
 
       - name: Sync Apple Website to S3
         if: env.changed_dirs == 'AppleWebsite-Clone'
         run: |
-          aws s3 sync ./sites/AppleWebsite-Clone s3://multiple-sites-9768/AppleWebsite-Clone \
+          aws s3 sync ./AppleWebsite-Clone s3://multiple-sites-9768/AppleWebsite-Clone \
             --delete --cache-control "max-age=86400"
 
       - name: Sync Microsoft Homepage to S3
         if: env.changed_dirs == 'microsoft-homepage-clone'
         run: |
-          aws s3 sync ./sites/microsoft-homepage-clone s3://multiple-sites-9768/microsoft-homepage-clone \
+          aws s3 sync ./microsoft-homepage-clone s3://multiple-sites-9768/microsoft-homepage-clone \
             --delete --cache-control "max-age=86400"
 
       - name: Sync Both Sites (if both changed)
-        if: env.changed_dirs == 'AppleWebsite-Clone microsoft-homepage-clone' || env.changed_dirs == 'microsoft-homepage-clone AppleWebsite-Clone'
+        if: env.changed_dirs =~ 'AppleWebsite-Clone.*microsoft-homepage-clone|microsoft-homepage-clone.*AppleWebsite-Clone'
         run: |
-          aws s3 sync ./sites/AppleWebsite-Clone s3://multiple-sites-9768/AppleWebsite-Clone \
+          aws s3 sync ./AppleWebsite-Clone s3://multiple-sites-9768/AppleWebsite-Clone \
             --delete --cache-control "max-age=86400"
-          aws s3 sync ./sites/microsoft-homepage-clone s3://multiple-sites-9768/microsoft-homepage-clone \
+          aws s3 sync ./microsoft-homepage-clone s3://multiple-sites-9768/microsoft-homepage-clone \
             --delete --cache-control "max-age=86400"
 
       - name: Print Success Message
-        run: echo "✅ Successfully deployed site(s) to S3"
+        run: echo "✅ Successfully deployed site(s) to S3 bucket multiple-sites-9768"
